@@ -5,3 +5,5 @@ pyTelegramBotAPI==3.6.6
 requests==2.22.0
 six==1.13.0
 urllib3==1.25.7
+emoji==0.5.4
+emojis==0.5.1
