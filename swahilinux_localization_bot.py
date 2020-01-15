@@ -90,14 +90,14 @@ def insert_phrase_to_db(translation):
     global checksums_list
     if checksum not in checksums_list:
         checksums_list.append(checksum)
-        sql_query = 'UPDATE localisation_main set swahili_translation = "' + translation.text.replace('"',
-                                                                                                      '#') + '" where checksum = "' + checksum + '"'
+        sql_query = 'UPDATE localisation_main set swahili_translation = "' + \
+                    translation.text.replace('"', '#') + '" where checksum = "' + checksum + '" '
         cursor.execute(sql_query)
         sql_query = 'UPDATE localisation_main set translator = "' + str(
             translation.from_user.id) + '" where checksum = "' + checksum + '"'
         cursor.execute(sql_query)
-        conn.commit()
-        conn.close()
+        connection.commit()
+        connection.close()
         update_translator_details(translation)
         # update_translator_points(translation.from_user.id, )
         bot.send_message(translation.chat.id, "Hongera! " + translation.from_user.first_name,
@@ -113,36 +113,38 @@ def initiate_translation(chat_id_param):
 
 
 def update_translator_details(translation):
-    conn = sqlite3.connect(db_name)
-    cursor = conn.cursor()
+    connection = sqlite3.connect(db_name)
+    cursor = connection.cursor()
     select_user_query = 'SELECT * from translators_ids where user_id = ' + str(translation.from_user.id)
     insert_user_query = 'insert into translators_ids(user_id, first_name, points) values (' + \
                         str(translation.from_user.id) + ', "' + translation.from_user.first_name + '", ' + str(3)
     update_firstname_query = 'UPDATE translators_ids set first_name = "' + translation.from_user.first_name + \
                              '" where user_id = ' + str(translation.from_user.id)
-    user = conn.execute(select_user_query)
+    user = connection.execute(select_user_query)
     if user.arraysize == 0:
         cursor.execute(insert_user_query)
-        conn.commit()
+        connection.commit()
     else:
         cursor.execute(update_firstname_query)
-        conn.commit()
-    conn.close()
+        connection.commit()
+    connection.close()
 
 
-def update_translator_points(id, points):
-    conn = sqlite3.connect(db_name)
-    cursor = conn.cursor()
-    update_points_query = 'UPDATE translators_ids set points = ' + str(points) + ' where user_id = ' + str(id)
+def update_translator_points(translator_id, points):
+    connection = sqlite3.connect(db_name)
+    cursor = connection.cursor()
+    update_points_query = 'UPDATE translators_ids set points = {0} where user_id = {1}'.format(str(points),
+                                                                                               str(translator_id))
     cursor.execute(update_points_query)
-    conn.commit()
-    conn.close()
+    connection.commit()
+    connection.close()
 
 
 def get_phrase_from_db():
-    conn = sqlite3.connect(db_name)
-    cursor = conn.execute(
-        "SELECT checksum, english_phrase from localisation_main where swahili_translation is  null order by random() limit 1")
+    connection = sqlite3.connect(db_name)
+    cursor = connection.execute(
+        "SELECT checksum, english_phrase from localisation_main where swahili_translation is  null order by random() "
+        "limit 1")
     phrase = ''
     print("enterring for loop")
     for row in cursor:
@@ -150,7 +152,7 @@ def get_phrase_from_db():
         checksum = row[0]
         print(row[1])
         phrase = row[1]
-    conn.close()
+    connection.close()
     return phrase
 
 
