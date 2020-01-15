@@ -1,7 +1,9 @@
-import telebot
-import sqlite3
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import configparser
+import sqlite3
+
+import emoji
+import telebot
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -65,10 +67,26 @@ def gen_skip_markup():
     return markup
 
 
+def text_has_emoji(text):
+    for character in text:
+        if character in emoji.UNICODE_EMOJI:
+            return True
+    return False
+
+
 def insert_phrase_to_db(translation):
-    conn = sqlite3.connect(db_name)
-    cursor = conn.cursor()
-    print("current translation : > " + translation.text)
+    connection = sqlite3.connect(db_name)
+    cursor = connection.cursor()
+    try:
+        print("current translation : > " + translation.text)
+    except TypeError:
+        bot.send_message(translation.chat.id, "Samahani, jaribu tena " + translation.from_user.first_name,
+                         reply_markup=gen_subsequent_markup())
+        return
+    if text_has_emoji(translation.text) or translation.text in ['/start', '/stop']:
+        bot.send_message(translation.chat.id, "Samahani, jaribu tena " + translation.from_user.first_name,
+                         reply_markup=gen_subsequent_markup())
+        return
     global checksums_list
     if checksum not in checksums_list:
         checksums_list.append(checksum)
