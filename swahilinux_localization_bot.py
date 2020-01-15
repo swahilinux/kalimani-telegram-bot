@@ -2,6 +2,7 @@ import configparser
 import sqlite3
 
 import emoji
+import emojis
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -32,8 +33,10 @@ def send_welcome(message):
 def callback_query(call):
     if call.data == "tafsiri" or call.data == "endelea" or call.data == "ruka":
         initiate_translation(call.message.chat.id)
+    elif call.data == "angalia_mabingwa":
+        send_top_contributors(call.message.chat.id)
     elif call.data == "ondoka":
-        bot.answer_callback_query(call.id, "Ahsante sana!!" + str(chat_id))
+        send_welcome(call.message)
 
 
 @bot.message_handler(commands=['tafsiri'])
@@ -64,6 +67,13 @@ def gen_skip_markup():
     markup.row_width = 2
     markup.add(InlineKeyboardButton("Ruka neno", callback_data='ruka'),
                InlineKeyboardButton("Ondoka", callback_data='ondoka'))
+    return markup
+
+
+def gen_exit_rankings_markup():
+    markup = InlineKeyboardMarkup()
+    markup.row_width = 1
+    markup.add(InlineKeyboardButton("Nimetii!!", callback_data='ondoka'))
     return markup
 
 
@@ -108,8 +118,30 @@ def initiate_translation(chat_id_param):
     translation = bot.send_message(chat_id_param, "Twasemaje: \n" + get_phrase_from_db().replace('#', '"'),
                                    reply_markup=gen_skip_markup())
     if translation.text is not None and translation.text is not '':
-        print("translation text:--->" + translation.text)
         bot.register_next_step_handler(translation, insert_phrase_to_db)
+
+
+def send_top_contributors(chat_id_param):
+    top_contributors = get_top_contributors()
+    total_top_contributors = top_contributors.__len__()
+    list_of_top_contributors = ''
+    first_place_emoji = emojis.encode(' :sunglasses: :goat:')
+    second_place_emoji = emojis.encode(' :smirk: :fist:')
+    third_place_emoji = emojis.encode(' :v:')
+    subsequent_positions_emoji = ''
+    for contributor_index in range(total_top_contributors):
+        if contributor_index == 0:
+            emoji_icon = first_place_emoji
+        elif contributor_index == 1:
+            emoji_icon = second_place_emoji
+        elif contributor_index == 2:
+            emoji_icon = third_place_emoji
+        else:
+            emoji_icon = subsequent_positions_emoji
+        list_of_top_contributors += str(contributor_index + 1) + ". " + top_contributors[contributor_index][0] + " - " + \
+                                    str(top_contributors[contributor_index][1]) + emoji_icon + "\n"
+    bot.send_message(chat_id_param, "Wazito: \n" + list_of_top_contributors,
+                     reply_markup=gen_exit_rankings_markup())
 
 
 def get_translator_points(translator_id):
@@ -165,6 +197,14 @@ def get_phrase_from_db():
         phrase = row[1]
     connection.close()
     return phrase
+
+
+def get_top_contributors():
+    connection = sqlite3.connect(db_name)
+    cursor = connection.cursor()
+    select_top_contributors_query = "select first_name, points from translators_ids order by points desc limit 10"
+    top_contributors = cursor.execute(select_top_contributors_query).fetchall()
+    return top_contributors
 
 
 # conn.close()
